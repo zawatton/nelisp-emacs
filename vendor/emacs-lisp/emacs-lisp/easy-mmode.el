@@ -831,9 +831,9 @@ Interactively, COUNT is the prefix numeric argument, and defaults to 1."
 
 ;; When deleting these two, also delete them from loaddefs-gen.el.
 ;;;###autoload
-(define-obsolete-function-alias 'easy-mmode-define-minor-mode #'define-minor-mode "30.1")
+(define-obsolete-function-alias 'easy-mmode-define-minor-mode 'define-minor-mode "30.1")
 ;;;###autoload
-(define-obsolete-function-alias 'easy-mmode-define-global-mode #'define-globalized-minor-mode "30.1")
+(define-obsolete-function-alias 'easy-mmode-define-global-mode 'define-globalized-minor-mode "30.1")
 
 (provide 'easy-mmode)
 
