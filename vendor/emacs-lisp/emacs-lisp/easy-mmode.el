@@ -444,7 +444,7 @@ No problems result if this variable is not bound.
 ;;;
 
 ;;;###autoload
-(defalias 'define-global-minor-mode #'define-globalized-minor-mode)
+(defalias 'define-global-minor-mode 'define-globalized-minor-mode)
 ;;;###autoload
 (defmacro define-globalized-minor-mode (global-mode mode turn-on &rest body)
   "Make a global mode GLOBAL-MODE corresponding to buffer-local minor MODE.
