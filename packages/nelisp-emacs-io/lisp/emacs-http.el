@@ -155,10 +155,17 @@ caller's headers win on conflict."
           :body (or (plist-get resp :body) ""))))))))
 
 (defun emacs-http--reply (proc response-string)
-  "Send RESPONSE-STRING to PROC and close the connection."
-  (when (process-live-p proc)
-    (process-send-string proc response-string)
-    (ignore-errors (process-send-eof proc)))
+  "Send RESPONSE-STRING to PROC and close the connection.
+Depends only on `process-send-string' + `delete-process', which operate
+on the network-connection fd directly.  It deliberately does NOT use
+`process-live-p' or `process-send-eof': under the NeLisp standalone
+reader those resolve to a different process subsystem's impl (or an
+unloaded one), and gating the write on them silently drops the response
+\(the connection closes with an empty reply).  Content-Length delimits
+the body, so no half-close is needed for the client to know it is done."
+  (condition-case nil
+      (process-send-string proc response-string)
+    (error nil))
   (ignore-errors (delete-process proc)))
 
 (defun emacs-http--make-filter (handler)
