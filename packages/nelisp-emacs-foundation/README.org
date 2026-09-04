@@ -15,7 +15,7 @@ Generated experimental scaffold.  Do not edit this copy as the source of truth; 
 - facade-name: =foundation=
 - owner: =FND=
 - package-requires: ==
-- member-features: =cl-lib,emacs-backquote,emacs-callproc,emacs-char-table,emacs-cl-macros,emacs-easy-mmode,emacs-edebug-stubs,emacs-error,emacs-eval,emacs-fns,emacs-hash,emacs-list,emacs-numeric,emacs-os-detect,emacs-pcase,emacs-string,emacs-stub,emacs-stub-bulk,emacs-subr-extras,emacs-symbol,emacs-time,emacs-vars,subr-x=
+- member-features: =calendar,cl-lib,emacs-backquote,emacs-callproc,emacs-char-table,emacs-cl-macros,emacs-easy-mmode,emacs-edebug-stubs,emacs-error,emacs-eval,emacs-fns,emacs-hash,emacs-list,emacs-numeric,emacs-os-detect,emacs-pcase,emacs-string,emacs-stub,emacs-stub-bulk,emacs-subr-extras,emacs-symbol,emacs-time,emacs-vars,subr-x=
 - lazy-features: ==
 - host-features: ==
 - vendor-package-features: ==

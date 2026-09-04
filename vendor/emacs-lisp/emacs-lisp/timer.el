@@ -88,6 +88,15 @@
 	(timer--usecs timer)
 	(timer--psecs timer)))
 
+;; b1k10: the standalone runtime's `setf' does not process the
+;; `(declare (gv-setter timer--time-setter))' form above -- it falls back to a
+;; `<accessor>--setter' name, i.e. `timer--time--setter' (double dash), which is
+;; void.  Alias that fallback name to the real single-dash setter so that
+;; `(setf (timer--time TIMER) V)' works during startup (timer scheduling).  The
+;; setf fallback calls `(SETTER PLACE-ARG VALUE)' (value last), which matches
+;; `timer--time-setter''s (TIMER TIME) arglist exactly.
+(defalias 'timer--time--setter #'timer--time-setter)
+
 (defun timer-set-time (timer time &optional delta)
   "Set the trigger time of TIMER to TIME.
 TIME must be a Lisp time value.

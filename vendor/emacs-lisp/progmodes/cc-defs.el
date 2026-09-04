@@ -2456,6 +2456,10 @@ system."
 	   ((eq c-or-l 'loading) load-file-name)
 	   ((eq c-or-l 'compiling) byte-compile-dest-file)
 	   ((null c-or-l) (buffer-file-name)))))
+    ;; b1k19: headless nemacs replay inlines cc-langs/cc-fonts (no file context),
+    ;; so load-file-name/buffer-file-name are nil -> `c-lang-defconst' errored.
+    ;; Fall back to a stable synthetic base so the language constants define.
+    (setq file (or file load-file-name "cc-lang-replay"))
     (and file
 	 (file-name-sans-extension
 	  (file-name-nondirectory file)))))

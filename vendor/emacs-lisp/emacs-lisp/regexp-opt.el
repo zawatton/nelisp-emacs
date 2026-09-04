@@ -173,6 +173,39 @@ This means the number of non-shy regexp grouping constructs
 
 ;;; Workhorse functions.
 
+(defun regexp-opt--common-prefix (strings)
+  "Return the longest common prefix of the non-empty list STRINGS.
+This is the pure Lisp equivalent of `(try-completion \"\" STRINGS)' used
+by upstream `regexp-opt-group', without depending on Emacs's completion
+core."
+  (let ((prefix (car strings))
+        (rest (cdr strings)))
+    (while (and rest (> (length prefix) 0))
+      (let* ((string (car rest))
+             (limit (min (length prefix) (length string)))
+             (index 0))
+        (while (and (< index limit)
+                    (= (aref prefix index) (aref string index)))
+          (setq index (1+ index)))
+        (setq prefix (substring prefix 0 index)))
+      (setq rest (cdr rest)))
+    prefix))
+
+(defun regexp-opt--split-first-char (strings)
+  "Split sorted non-empty STRINGS after the first initial-character run.
+Return `(MATCHING . REST)', preserving the input order.  This replaces
+`all-completions' in the recursive partition step."
+  (let ((initial (substring (car strings) 0 1))
+        (matching nil)
+        (rest strings))
+    (while (and rest
+                (string-equal
+                 initial
+                 (substring (car rest) 0 1)))
+      (push (car rest) matching)
+      (setq rest (cdr rest)))
+    (cons (nreverse matching) rest)))
+
 (defun regexp-opt-group (strings &optional paren lax)
   "Return a regexp to match a string in the sorted list STRINGS.
 If PAREN non-nil, output regexp parentheses around returned regexp.
@@ -232,7 +265,7 @@ Merges keywords to avoid backtracking in Emacs's regexp matcher."
      ;;
      ;; We have a list of different length strings.
      (t
-      (let ((prefix (try-completion "" strings)))
+      (let ((prefix (regexp-opt--common-prefix strings)))
 	(if (> (length prefix) 0)
 	    ;; common prefix: take it and recurse on the suffixes.
 	    (let* ((n (length prefix))
@@ -243,7 +276,7 @@ Merges keywords to avoid backtracking in Emacs's regexp matcher."
 		      close-group))
 
 	  (let* ((sgnirts (mapcar #'reverse strings))
-		 (xiffus (try-completion "" sgnirts)))
+		 (xiffus (regexp-opt--common-prefix sgnirts)))
 	    (if (> (length xiffus) 0)
 		;; common suffix: take it and recurse on the prefixes.
 		(let* ((n (- (length xiffus)))
@@ -258,9 +291,9 @@ Merges keywords to avoid backtracking in Emacs's regexp matcher."
 
 	      ;; Otherwise, divide the list into those that start with a
 	      ;; particular letter and those that do not, and recurse on them.
-	      (let* ((char (substring-no-properties (car strings) 0 1))
-		     (half1 (all-completions char strings))
-		     (half2 (nthcdr (length half1) strings)))
+	      (let* ((halves (regexp-opt--split-first-char strings))
+		     (half1 (car halves))
+		     (half2 (cdr halves)))
 		(concat open-group
 			(regexp-opt-group half1)
 			"\\|" (regexp-opt-group half2)
@@ -291,7 +324,16 @@ never matches anything."
        ((eq char ?-)
 	(setq dash "-"))
        (t
-	(aset charmap char t))))
+	;; Route the single-character write through the char-table range
+	;; setter rather than a raw `aset'.  Under standalone NeLisp the
+	;; char-table is a vector shim (see src/emacs-char-table.el) whose
+	;; char storage lives in a sub-vector; a raw `(aset charmap CHAR t)'
+	;; indexes the 7-slot outer vector at the character code and is out
+	;; of range.  `set-char-table-range' routes CHAR into the storage
+	;; (ASCII sub-vector / sparse ranges), matching this function's own
+	;; `map-char-table' read below.  Behaviour is identical under host
+	;; Emacs where both forms set the character's entry.
+	(set-char-table-range charmap char t))))
     ;;
     ;; Make a character set from the map using ranges where applicable.
     (map-char-table

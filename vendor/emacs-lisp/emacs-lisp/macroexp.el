@@ -232,8 +232,16 @@ It should normally be a symbol with position and it defaults to FORM."
              ((and (symbolp def) (macrop def)) (cons def (cdr form)))
              ((not (consp def)) form)
              (t
+              ;; The standalone substrate stores an interpreted macro as
+              ;; (macro CLOSURE): the closure is the CADR, so (cdr def) is
+              ;; (CLOSURE), a list, not a function.  Real Emacs stores
+              ;; (macro . FN) where (cdr def) is callable.  Apply the CDR
+              ;; when it is itself callable, else apply its CAR (the
+              ;; substrate closure).  Host behavior is unchanged because
+              ;; (functionp (cdr def)) is non-nil for the (macro . FN) form.
               (if (eq 'macro (car def))
-                  (apply (cdr def) (cdr form))
+                  (let ((exp (cdr def)))
+                    (apply (if (functionp exp) exp (car exp)) (cdr form)))
                 form))))))))
    (t form)))
 
