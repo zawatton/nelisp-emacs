@@ -16,10 +16,10 @@ Generated experimental scaffold.  Do not edit this copy as the source of truth; 
 - owner: =CORE=
 - package-requires: =nelisp-emacs-buffer-core,nelisp-emacs-editing,nelisp-emacs-foundation=
 - member-features: =emacs-command-loop,emacs-command-loop-builtins,emacs-faces,emacs-faces-builtins,emacs-frame,emacs-frame-builtins,emacs-help,emacs-info,emacs-keymap,emacs-keymap-builtins,emacs-minibuffer,emacs-minibuffer-builtins,emacs-mode,emacs-mode-builtins,emacs-window,emacs-window-builtins=
-- lazy-features: =emacs-elisp-eval,emacs-elisp-mode,emacs-font-lock,emacs-ielm,emacs-redisplay-core,emacs-syntax-table,emacs-tui-backend,emacs-tui-event,emacs-tui-terminfo,lisp-mode=
+- lazy-features: =emacs-buffer-ui,emacs-dired-min,emacs-elisp-eval,emacs-elisp-mode,emacs-font-lock,emacs-ielm,emacs-isearch,emacs-project,emacs-redisplay-core,emacs-syntax-table,emacs-tui-backend,emacs-tui-event,emacs-tui-terminfo,lisp-mode=
 - host-features: =keymap,pp=
 - vendor-package-features: ==
-- source-counts: eager=17 lazy=10
+- source-counts: eager=17 lazy=14
 
 * Smoke
 

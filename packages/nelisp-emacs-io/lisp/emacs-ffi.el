@@ -105,7 +105,14 @@ SIGNATURE follows the NeLisp FFI vector convention, for example
     found))
 
 (defun emacs-ffi-default-nelisp-runtime-library ()
-  "Return the preferred NeLisp runtime shared library path."
+  "Return the preferred NeLisp runtime shared library path.
+Resolution order:
+
+  1. `NELISP_RUNTIME_SO' (kept for compatibility, even on Windows)
+  2. `NELISP_RUNTIME_LIBRARY'
+  3. `NELISP_HOME'/target/release/<platform library name>
+  4. `ANVIL_HOME'/target/release/<platform library name>
+  5. common Notes checkout paths under HOME."
   (let* ((override-a (and (fboundp 'getenv) (getenv "NELISP_RUNTIME_SO")))
          (override-b (and (fboundp 'getenv) (getenv "NELISP_RUNTIME_LIBRARY")))
          (home (and (fboundp 'getenv) (getenv "NELISP_HOME")))

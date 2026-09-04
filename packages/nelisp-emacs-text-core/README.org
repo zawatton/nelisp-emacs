@@ -15,11 +15,11 @@ Generated experimental scaffold.  Do not edit this copy as the source of truth; 
 - facade-name: =text-core=
 - owner: =TXT=
 - package-requires: =nelisp-emacs-foundation=
-- member-features: =nelisp-coding,nelisp-regex=
+- member-features: =nelisp-coding,nelisp-regex,rx=
 - lazy-features: =nelisp-coding-jis-tables=
 - host-features: ==
 - vendor-package-features: ==
-- source-counts: eager=3 lazy=1
+- source-counts: eager=4 lazy=1
 
 * Smoke
 

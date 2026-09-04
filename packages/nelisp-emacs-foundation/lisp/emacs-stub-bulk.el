@@ -192,9 +192,8 @@ Forwarder to `forward-char' with negated count."
     assq atom auto-fill-mode autoload autoload-do-load auto-save-mode backtrace backtrace-frame--internal
     backward-delete-char backward-sexp backward-word beep beginning-of-line bobp bolp bool-vector
     bool-vector-p boundp bounds-of-thing-at-point buffer-file-name buffer-list buffer-live-p buffer-local-value buffer-modified-p
-    buffer-name bufferp buffer-size buffer-string buffer-substring buffer-substring-no-properties byte-code byte-code-function-p
-    byte-compile byte-compile-disable-warning byte-compile-enable-warning byte-compile-warning-enabled-p byte-compile-warn-obsolete byte-run--set-speed cancel-timer capitalize-word
-    car car-less-than-car car-safe cdr cdr-safe characterp char-after
+    buffer-name bufferp buffer-size buffer-string buffer-substring buffer-substring-no-properties byte-code byte-compile byte-compile-disable-warning byte-compile-enable-warning byte-compile-warning-enabled-p byte-compile-warn-obsolete byte-run--set-speed cancel-timer capitalize-word
+    car car-less-than-car car-safe cdr cdr-safe char-after
     char-before char-syntax char-table-p char-table-range char-to-string chmod cl--assertion-failed cl--class-allparents
     cl--class-docstring cl--class-index-table cl--class-name cl--class-parents cl--class-slots cl-generic-combine-methods cl--generic-dispatches cl--generic-generalizer-name
     cl--generic-generalizer-p cl--generic-generalizer-priority cl-generic-generalizers cl--generic-generalizer-specializers-function cl--generic-generalizer-tagcode-function cl--generic-make cl-generic-make-generalizer cl--generic-make-method
@@ -212,10 +211,9 @@ Forwarder to `forward-char' with negated count."
     elt emacs-pid emacs-version end-of-line enlarge-window eobp eq eql
     equal erase-buffer error-message-string eval eval-after-load eval-buffer event-convert-list exec-path
     execute-extended-command-for-buffer exit-minibuffer exp expand-file-name face-background-pixmap face-font face-stipple face-underline-p
-    fboundp featurep fetch-bytecode field-beginning field-end file-exists-p file-modes file-name-absolute-p
-    file-name-extension file-name-nondirectory file-name-sans-extension file-newer-than-file-p file-relative-name file-truename fillarray find-function-search-for-symbol
+    fboundp featurep fetch-bytecode field-beginning field-end file-exists-p file-modes file-name-extension file-name-nondirectory file-name-sans-extension file-newer-than-file-p fillarray find-function-search-for-symbol
     find-lisp-object-file-name flatten-list floatp float-time fmakunbound format
-    format-message format-prompt format-spec forward-char forward-line forward-sexp forward-word frame-char-height
+    format-message format-spec forward-char forward-line forward-sexp forward-word frame-char-height
     frame-char-width frame-height frame-live-p framep frame-parameter frame-parameters frame-selected-window frame-toggle-on-screen-keyboard
     frame-visible-p frame-width fset funcall funcall-with-delayed-message function-documentation functionp function-put
     garbage-collect generate-new-buffer-name get get-advertised-calling-convention get-buffer get-buffer-create get-buffer-process get-char-property
@@ -234,9 +232,9 @@ Forwarder to `forward-char' with negated count."
     macroexp--warn-and-return macroexp-warn-and-return mail make-char-table make-directory make-directory-autoloads make-frame-invisible make-frame-visible
     make-hash-table make-keymap make-list make-local-variable make-obsolete make-obsolete-variable make-overlay make-sparse-keymap
     make-string make-symbol make-text-button make-variable-buffer-local make-vector mapatoms mapbacktrace mapc
-    mapcan mapcar mapconcat maphash map-keymap mark markerp marker-position
+    mapcar mapconcat maphash map-keymap mark markerp marker-position
     mark-marker match-beginning match-data match-data--translate match-end max member memq
-    memql message min minibuffer-message minibufferp minibuffer-prompt minibuffer-prompt-end minibuffer-recenter-top-bottom
+    message min minibuffer-message minibufferp minibuffer-prompt minibuffer-prompt-end minibuffer-recenter-top-bottom
     minibuffer-scroll-down-command minibuffer-scroll-other-window minibuffer-scroll-other-window-down minibuffer-scroll-up-command minibuffer-window mkdir mod modify-frame-parameters
     mouse-position move-marker move-overlay move-to-column mutex-lock mutex-unlock narrow-to-region native-comp-available-p
     native-comp-function-p native-comp-unit-file natnump nconc newline next-frame next-property-change next-single-property-change
@@ -246,7 +244,7 @@ Forwarder to `forward-char' with negated count."
     pcase--make-docstring play-sound-internal plist-get plist-member plist-put point point-at-bol point-at-eol
     point-marker point-max point-min pos-bol pos-eol posn-at-point prefix-numeric-value prin1
     prin1-to-string princ print process-attributes process-file process-filter process-plist process-query-on-exit-flag
-    process-send-region process-sentinel progress-reporter-make proper-list-p propertize purecopy put puthash
+    process-send-region process-sentinel progress-reporter-make propertize purecopy put puthash
     put-text-property raise-frame random rassq read read-from-minibuffer read-from-string read-kbd-macro
     read-library-name read-string recenter recenter-top-bottom record recordp redirect-frame-focus regexp-opt
     regexp-quote remember remove-list-of-text-properties rename-buffer repeat replace-match re-search-backward re-search-forward
@@ -264,8 +262,7 @@ Forwarder to `forward-char' with negated count."
     signal single-key-description skip-chars-backward skip-chars-forward skip-syntax-backward skip-syntax-forward sleep-for sort
     special-variable-p standard-case-table standard-syntax-table start-file-process store-match-data string string-as-multibyte string-as-unibyte
     string-equal string-lessp string-make-multibyte string-make-unibyte string-match stringp string-search string-split
-    string-to-multibyte string-to-number string-to-unibyte string-width subr-arity subr-native-comp-unit subrp substitute-command-keys
-    substitute-quotes substring substring-no-properties suspend-emacs switch-to-buffer sxhash sxhash-equal symbol-function
+    string-to-multibyte string-to-number string-to-unibyte string-width subr-arity subr-native-comp-unit substitute-quotes substring substring-no-properties suspend-emacs switch-to-buffer sxhash sxhash-equal symbol-function
     symbol-name symbolp symbol-plist symbol-value syntax-ppss-flush-cache syntax-propertize syntax-table take
     temp-buffer-resize-mode temporary-file-directory terminal-parameter terpri text-properties-at time-convert time-less-p truncate
     tty-top-frame type-of undo-amalgamate-change-group undo-auto-amalgamate undo-more unhandled-file-name-directory unintern upcase
@@ -287,7 +284,20 @@ Forwarder to `forward-char' with negated count."
     with-temp-buffer-window)))
   (dolist (--s-- --stub-defmacros--)
     (unless (fboundp --s--)
-      (fset --s-- (cons 'macro (lambda (&rest _) nil)))
+      ;; Install through a constructed `defmacro' form, NOT a raw
+      ;; `(fset SYM (cons 'macro (lambda ...)))'.  The NeLisp standalone
+      ;; evaluator registers macros through the `defmacro' path; a macro
+      ;; whose function cell is a hand-built `(macro . CLOSURE)' cons is
+      ;; `fboundp' and `macrop' but *invoking* it aborts the enclosing
+      ;; top-level form flagless (bare rc=1, no error stash -- verified
+      ;; in isolation: `(fset 'x (cons 'macro (lambda (&rest _) nil)))'
+      ;; then `(x)' aborts, while the equivalent `defmacro' works).  Any
+      ;; vendor call site reaching one of these stubs (e.g. Magit/
+      ;; transient's `pcase-exhaustive' uses) previously killed its whole
+      ;; form silently instead of expanding to nil as intended.  Host
+      ;; Emacs accepts both shapes, so the constructed `defmacro' is
+      ;; strictly more portable.
+      (eval (list 'defmacro --s-- '(&rest _) nil) t)
       (put --s-- 'emacs-stub-bulk t))))
 
 (let ((--stub-defvars--
@@ -299,7 +309,7 @@ Forwarder to `forward-char' with negated count."
     history-length horizontal-scroll-bar inhibit-changing-match-data inhibit-field-text-motion inhibit-modification-hooks inhibit-nul-byte-detection inhibit-null-byte-detection inhibit-point-motion-hooks
     inhibit-read-only input-decode-map input-method-function jka-compr-load-suffixes keyboard-translate-table kill-buffer-hook kill-buffer-query-functions lexical-binding
     line-spacing load-dangerous-libraries load-file-name load-file-rep-suffixes load-history load-path load-suffixes macro-declarations-alist
-    macroexpand-all-environment macroexp--dynvars magic-fallback-mode-alist mail-user-agent major-mode--suspended max-lisp-eval-depth menu-prompting message-log-max
+    macroexpand-all-environment macroexp--dynvars magic-fallback-mode-alist mail-user-agent major-mode--suspended max-lisp-eval-depth menu-prompting
     messages-buffer-max-lines minibuffer-auto-raise minibuffer-default-prompt-format minibuffer-local-map minibuffer-scroll-window minor-mode-alist minor-mode-map-alist mode-line-mode-menu
     most-negative-fixnum most-positive-fixnum native-comp-deferred-compilation native-comp-enable-subr-trampolines native-comp-jit-compilation needed noninteractive obarray
     operating-system-release output overriding-local-map overriding-terminal-local-map parse-sexp-lookup-properties pending-undo-list post-self-insert-hook print-escape-newlines
@@ -309,7 +319,17 @@ Forwarder to `forward-char' with negated count."
     x-gtk-use-window-move yank-transform-functions)))
   (dolist (--s-- --stub-defvars--)
     (unless (boundp --s--)
-      (set --s-- nil))))
+      ;; Constructed `defvar', not `set': every name in this list is a
+      ;; real dynamic (special) variable in Emacs, and vendor code
+      ;; let-binds many of them expecting other functions to observe the
+      ;; binding dynamically.  A bare `set' only populates the global
+      ;; value cell without marking the symbol special, so under
+      ;; lexical-binding a later `(let ((inhibit-read-only t)) ...)'
+      ;; creates an invisible LEXICAL binding and the read-only check in
+      ;; `emacs-buffer--barf-if-read-only' still sees the global nil --
+      ;; exactly the `default-process-coding-system' defect class the
+      ;; magit bridge documented, recurring here for every name below.
+      (eval (list 'defvar --s-- nil) t))))
 
 (unless (fboundp 'define-abbrev-table)
   (defun define-abbrev-table (symbol definitions &optional _docstring &rest _props)
@@ -321,6 +341,21 @@ Forwarder to `forward-char' with negated count."
   (defun make-syntax-table (&optional _table)
     "Standalone load-time stub for syntax tables."
     (make-vector 256 nil)))
+
+(unless (fboundp 'syntax-table-p)
+  (defun syntax-table-p (object)
+    "Standalone load-time stub for syntax table predicate.
+Recognizes every syntax-table representation the substrate can
+produce: the `emacs-syntax-table.el' char-table (subtype
+`syntax-table') when `emacs-char-table-p' is available, the
+`emacs-stub.el' cons fallback `(syntax-table . PARENT)', and the
+plain 256-slot vectors produced by the `make-syntax-table' stub
+above."
+    (or (and (fboundp 'emacs-char-table-p)
+             (emacs-char-table-p object)
+             (eq (emacs-char-table-subtype object) 'syntax-table))
+        (eq (car-safe object) 'syntax-table)
+        (and (vectorp object) (= (length object) 256)))))
 
 (unless (fboundp 'modify-syntax-entry)
   (defun modify-syntax-entry (_char _syntax &optional _table)

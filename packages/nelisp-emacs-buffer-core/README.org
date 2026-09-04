@@ -16,10 +16,10 @@ Generated experimental scaffold.  Do not edit this copy as the source of truth; 
 - owner: =BUF=
 - package-requires: =nelisp-emacs-foundation,nelisp-emacs-text-core=
 - member-features: =emacs-buffer,emacs-buffer-builtins,emacs-line-builtins,emacs-search-builtins,nelisp-emacs-compat,nelisp-text-buffer=
-- lazy-features: =emacs-bookmark-ui,emacs-buffer-ui,emacs-isearch,emacs-replace=
+- lazy-features: =emacs-bookmark-ui,emacs-replace=
 - host-features: ==
 - vendor-package-features: ==
-- source-counts: eager=7 lazy=4
+- source-counts: eager=7 lazy=2
 
 * Smoke
 

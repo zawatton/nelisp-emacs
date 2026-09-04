@@ -16,10 +16,10 @@ Generated experimental scaffold.  Do not edit this copy as the source of truth; 
 - owner: =FEAT=
 - package-requires: =nelisp-emacs-buffer-core=
 - member-features: =emacs-textmodes-stub=
-- lazy-features: ==
+- lazy-features: =emacs-org-outline,emacs-org-table,emacs-org-todo,org=
 - host-features: ==
 - vendor-package-features: ==
-- source-counts: eager=1 lazy=0
+- source-counts: eager=1 lazy=4
 
 * Smoke
 
