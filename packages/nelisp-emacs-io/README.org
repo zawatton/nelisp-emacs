@@ -15,11 +15,11 @@ Generated experimental scaffold.  Do not edit this copy as the source of truth; 
 - facade-name: =io=
 - owner: =IO=
 - package-requires: =nelisp-emacs-buffer-core,nelisp-emacs-foundation,nelisp-emacs-text-core=
-- member-features: =emacs-ffi,emacs-fileio-builtins,emacs-process,emacs-process-builtins,emacs-sqlite,emacs-standalone,files-runtime,nelisp-emacs-compat-fileio=
+- member-features: =emacs-ffi,emacs-file-name-handler,emacs-fileio-builtins,emacs-process,emacs-process-builtins,emacs-sqlite,emacs-standalone,files-runtime,nelisp-emacs-compat-fileio=
 - lazy-features: =emacs-dump,emacs-shell-command,emacs-vc,files-standalone-buffer,image-loader,nemacs-loaddefs=
 - host-features: ==
 - vendor-package-features: =nelisp-process=
-- source-counts: eager=9 lazy=6
+- source-counts: eager=10 lazy=6
 
 * Smoke
 
