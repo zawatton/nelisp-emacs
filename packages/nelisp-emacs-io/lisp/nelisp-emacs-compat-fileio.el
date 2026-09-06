@@ -783,7 +783,7 @@ file size."
     (cons file (length decoded))))
 
 ;;;###autoload
-(defun nelisp-ec-write-region (start end file &optional append visit)
+(defun nelisp-ec-write-region (start end file &optional append visit mustbenew)
   "Write text between START and END of the current buffer to FILE.
 The text is encoded under `nelisp-coding-utf8-encode-string' (UTF-8,
 `replace' strategy).
@@ -795,26 +795,44 @@ START / END — 1-based positions (matches `nelisp-ec' convention),
               - START nil: the whole buffer is written and END is
                 ignored (the standard `save-buffer' path calls
                 `write-region' as `(write-region nil nil FILE)').
-              - START and END both integers: the buffer text between
-                them (order-independent) is written.
+              - START and END both integers and/or `nelisp-ec' markers
+                (either order): the buffer text between them (order-
+                independent) is written.  A marker contributes only its
+                numeric position — like real Emacs, the text always
+                comes from the CURRENT buffer regardless of which buffer
+                the marker itself belongs to (T107 report: measured with
+                markers from a foreign buffer, `emacs -Q --batch' 31.1).
 APPEND      — non-nil → open FILE in append mode.
-VISIT       — accepted for shape-compat; ignored in MVP.
+VISIT       — non-nil marks the current buffer not-modified afterwards
+              (Emacs also associates FILE as the visited file name when
+              VISIT is a string or t; this MVP only clears the modified
+              flag).
+MUSTBENEW   — non-nil signals `file-already-exists' when FILE already
+              exists, `excl' or not: this headless runtime cannot pose
+              Emacs's own overwrite-confirmation prompt.
 
 Returns the number of *bytes* written to disk."
   (unless (stringp file)
     (signal 'wrong-type-argument (list 'stringp file)))
-  (ignore visit)
+  (when (and mustbenew (nelisp-ec-file-exists-p file))
+    (signal 'file-already-exists (list "File exists" file)))
   (let* ((text (cond
                 ;; Emacs: a string START is the text itself; END is ignored.
                 ((stringp start) start)
                 ;; Emacs: nil START means the whole buffer.
                 ((null start)
                  (nelisp-ec-buffer-substring 1 (1+ (nelisp-ec-buffer-size))))
-                ((and (integerp start) (integerp end))
-                 (nelisp-ec-buffer-substring (min start end) (max start end)))
-                (t (signal 'wrong-type-argument (list 'integerp start end)))))
+                (t
+                 (let ((s (nelisp-ec--position-arg start))
+                       (e (nelisp-ec--position-arg end)))
+                   (unless (and (integerp s) (integerp e))
+                     (signal 'wrong-type-argument
+                             (list 'integer-or-marker-p start end)))
+                   (nelisp-ec-buffer-substring (min s e) (max s e))))))
          (unibyte (nelisp-coding-utf8-encode-string text)))
     (nelisp-ec--write-raw-bytes file unibyte append)
+    (when (and visit nelisp-ec--current-buffer)
+      (nelisp-ec--set-buffer-modified-p nelisp-ec--current-buffer nil))
     (length unibyte)))
 
 (provide 'nelisp-emacs-compat-fileio)

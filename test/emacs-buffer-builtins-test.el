@@ -816,6 +816,153 @@ shadows our defun."
   (cl-letf (((symbol-function 'nelisp--write-stdout-bytes) (lambda (&rest _) nil)))
     (should (emacs-buffer-builtins--standalone-p))))
 
+;;;; O. T107 — consumer buffers/markers as print/read streams
+
+;; Under batch host Emacs `prin1'/`princ'/`read'/etc remain the real C
+;; builtins (they are only re-`fset' on the standalone reader, gated by
+;; `emacs-buffer-builtins--standalone-p'), so these tests call the ported
+;; arms directly by name -- `emacs-buffer-builtins-valid-print-stream-p',
+;; `emacs-buffer-builtins-emit-to-stream', `emacs-buffer-builtins-read-
+;; dispatch', `emacs-buffer-builtins-prn-to-string' -- the same pattern
+;; the rest of this file uses for `nelisp-ec-*'.  Values are checked
+;; against the T107 report table, itself measured directly against
+;; `emacs -Q --batch' 31.1.
+
+(ert-deftest emacs-buffer-builtins-test/valid-print-stream-p-recognizes-ec-family ()
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let* ((buf (nelisp-ec-generate-new-buffer " *t107*"))
+           (marker (nelisp-ec-with-current-buffer buf
+                     (nelisp-ec-insert "abc")
+                     (nelisp-ec-point-marker))))
+      (should (emacs-buffer-builtins-valid-print-stream-p buf))
+      (should (emacs-buffer-builtins-valid-print-stream-p marker))
+      ;; Non-stream shapes are rejected when there is no native fallback
+      ;; installed (host Emacs never wraps `nelisp--valid-print-stream-p').
+      (should-not (emacs-buffer-builtins-valid-print-stream-p 42))
+      (should-not (emacs-buffer-builtins-valid-print-stream-p 'sym)))))
+
+(ert-deftest emacs-buffer-builtins-test/emit-to-stream-buffer-inserts-at-point ()
+  "Buffer stream: insert STR at point, point advances past STR."
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let ((buf (nelisp-ec-generate-new-buffer " *t107*")))
+      (nelisp-ec-with-current-buffer buf
+        (nelisp-ec-insert "abc")
+        (nelisp-ec-goto-char 2))
+      (emacs-buffer-builtins-emit-to-stream "(a . b)" buf)
+      (nelisp-ec-with-current-buffer buf
+        (should (equal (nelisp-ec-buffer-string) "a(a . b)bc"))
+        (should (= (nelisp-ec-point) 9))))))
+
+(ert-deftest emacs-buffer-builtins-test/emit-to-stream-marker-point-before ()
+  "Marker stream, buffer point BEFORE the marker: point is unaffected;
+the marker always relocates past the inserted text."
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let* ((buf (nelisp-ec-generate-new-buffer " *t107*"))
+           (marker (nelisp-ec-with-current-buffer buf
+                     (nelisp-ec-insert "0123456789")
+                     (nelisp-ec-goto-char 3)
+                     (nelisp-ec-set-marker (nelisp-ec-make-marker) 6 buf))))
+      (emacs-buffer-builtins-emit-to-stream "XY" marker)
+      (nelisp-ec-with-current-buffer buf
+        (should (equal (nelisp-ec-buffer-string) "01234XY56789"))
+        (should (= (nelisp-ec-point) 3))
+        (should (= (nelisp-ec-marker-position marker) 8))))))
+
+(ert-deftest emacs-buffer-builtins-test/emit-to-stream-marker-point-at ()
+  "Marker stream, buffer point AT the marker: point advances with it."
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let* ((buf (nelisp-ec-generate-new-buffer " *t107*"))
+           (marker (nelisp-ec-with-current-buffer buf
+                     (nelisp-ec-insert "0123456789")
+                     (nelisp-ec-goto-char 6)
+                     (nelisp-ec-set-marker (nelisp-ec-make-marker) 6 buf))))
+      (emacs-buffer-builtins-emit-to-stream "XY" marker)
+      (nelisp-ec-with-current-buffer buf
+        (should (= (nelisp-ec-point) 8))
+        (should (= (nelisp-ec-marker-position marker) 8))))))
+
+(ert-deftest emacs-buffer-builtins-test/emit-to-stream-marker-point-after ()
+  "Marker stream, buffer point AFTER the marker: point shifts right by
+the inserted length."
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let* ((buf (nelisp-ec-generate-new-buffer " *t107*"))
+           (marker (nelisp-ec-with-current-buffer buf
+                     (nelisp-ec-insert "0123456789")
+                     (nelisp-ec-goto-char 9)
+                     (nelisp-ec-set-marker (nelisp-ec-make-marker) 6 buf))))
+      (emacs-buffer-builtins-emit-to-stream "XY" marker)
+      (nelisp-ec-with-current-buffer buf
+        (should (= (nelisp-ec-point) 11))
+        (should (= (nelisp-ec-marker-position marker) 8))))))
+
+(ert-deftest emacs-buffer-builtins-test/emit-to-stream-marker-detached-errors ()
+  (should-error (emacs-buffer-builtins-emit-to-stream "x" (nelisp-ec-make-marker))
+                :type 'error))
+
+(ert-deftest emacs-buffer-builtins-test/read-dispatch-buffer-skips-whitespace-and-advances-point ()
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let ((buf (nelisp-ec-generate-new-buffer " *t107*")))
+      (nelisp-ec-with-current-buffer buf
+        (nelisp-ec-insert "  (a b c) rest")
+        (nelisp-ec-goto-char 1))
+      (should (equal (emacs-buffer-builtins-read-dispatch buf) '(a b c)))
+      (nelisp-ec-with-current-buffer buf
+        (should (= (nelisp-ec-point) 10))))))
+
+(ert-deftest emacs-buffer-builtins-test/read-dispatch-buffer-eof-signals-with-buffer-data ()
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let ((buf (nelisp-ec-generate-new-buffer " *t107*")))
+      (nelisp-ec-with-current-buffer buf
+        (nelisp-ec-insert "   ")
+        (nelisp-ec-goto-char 1))
+      (should (equal (condition-case err
+                         (emacs-buffer-builtins-read-dispatch buf)
+                       (end-of-file err))
+                     (list 'end-of-file buf))))))
+
+(ert-deftest emacs-buffer-builtins-test/read-dispatch-marker-advances-marker-not-point ()
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let* ((buf (nelisp-ec-generate-new-buffer " *t107*"))
+           (marker (nelisp-ec-with-current-buffer buf
+                     (nelisp-ec-insert "  42 foo")
+                     (nelisp-ec-set-marker (nelisp-ec-make-marker) 1 buf))))
+      (should (= (emacs-buffer-builtins-read-dispatch marker) 42))
+      (should (= (nelisp-ec-marker-position marker) 5))
+      (nelisp-ec-with-current-buffer buf
+        ;; Buffer's own point is untouched by a marker-driven read.
+        (should (= (nelisp-ec-point) 9))))))
+
+(ert-deftest emacs-buffer-builtins-test/read-dispatch-marker-eof-signals-bare ()
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let* ((buf (nelisp-ec-generate-new-buffer " *t107*"))
+           (marker (nelisp-ec-with-current-buffer buf
+                     (nelisp-ec-insert "  ")
+                     (nelisp-ec-set-marker (nelisp-ec-make-marker) 1 buf))))
+      (should (equal (condition-case err
+                         (emacs-buffer-builtins-read-dispatch marker)
+                       (end-of-file err))
+                     '(end-of-file))))))
+
+(ert-deftest emacs-buffer-builtins-test/read-dispatch-marker-detached-errors ()
+  (should-error (emacs-buffer-builtins-read-dispatch (nelisp-ec-make-marker))
+                :type 'error))
+
+(ert-deftest emacs-buffer-builtins-test/prn-to-string-buffer-and-marker ()
+  (emacs-buffer-builtins-test--with-fresh-world
+    (let ((buf (nelisp-ec-generate-new-buffer " *t107*")))
+      (should (equal (emacs-buffer-builtins-prn-to-string buf t)
+                     "#<buffer  *t107*>"))
+      (nelisp-ec-with-current-buffer buf (nelisp-ec-insert "abc"))
+      (let ((marker (nelisp-ec-with-current-buffer buf
+                      (nelisp-ec-set-marker (nelisp-ec-make-marker) 2 buf))))
+        (should (equal (emacs-buffer-builtins-prn-to-string marker t)
+                       "#<marker at 2 in  *t107*>")))
+      (should (equal (emacs-buffer-builtins-prn-to-string (nelisp-ec-make-marker) t)
+                     "#<marker in no buffer>"))
+      (nelisp-ec-kill-buffer buf)
+      (should (equal (emacs-buffer-builtins-prn-to-string buf t)
+                     "#<killed buffer>")))))
+
 (provide 'emacs-buffer-builtins-test)
 
 ;;; emacs-buffer-builtins-test.el ends here

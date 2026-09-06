@@ -1334,3 +1334,64 @@ lambda over the same fileio substrate (parity pattern)."
           (should (progn (funcall cp src dst t) t)))
       (ignore-errors (delete-file src))
       (ignore-errors (delete-file dst)))))
+
+;;;; T107 -- `nelisp-ec-write-region' START/END markers + MUSTBENEW
+
+(ert-deftest emacs-fileio-builtins-test/write-region-start-end-markers-order-independent ()
+  "Integer/marker positions, either order, select the same text (T107 --
+measured against `emacs -Q --batch' 31.1: markers contribute only their
+numeric position, the text always comes from the CURRENT buffer)."
+  (emacs-fileio-builtins-test--with-fresh-world
+    (let ((path (emacs-fileio-builtins-test--tmp-path "markers.txt"))
+          (buf (nelisp-ec-generate-new-buffer "writer")))
+      (unwind-protect
+          (nelisp-ec-with-current-buffer buf
+            (nelisp-ec-insert "0123456789")
+            (let ((m1 (nelisp-ec-set-marker (nelisp-ec-make-marker) 3 buf))
+                  (m2 (nelisp-ec-set-marker (nelisp-ec-make-marker) 7 buf)))
+              ;; int/int, forward and reversed.
+              (nelisp-ec-write-region 3 7 path)
+              (should (equal (nelisp-ec--read-raw-bytes path nil nil) "2345"))
+              (nelisp-ec-write-region 7 3 path)
+              (should (equal (nelisp-ec--read-raw-bytes path nil nil) "2345"))
+              ;; marker/marker and mixed int/marker.
+              (nelisp-ec-write-region m1 m2 path)
+              (should (equal (nelisp-ec--read-raw-bytes path nil nil) "2345"))
+              (nelisp-ec-write-region 3 m2 path)
+              (should (equal (nelisp-ec--read-raw-bytes path nil nil) "2345"))))
+        (ignore-errors (delete-file path))))))
+
+(ert-deftest emacs-fileio-builtins-test/write-region-mustbenew-signals-when-file-exists ()
+  (emacs-fileio-builtins-test--with-fresh-world
+    (let ((path (emacs-fileio-builtins-test--tmp-path "mustbenew.txt"))
+          (buf (nelisp-ec-generate-new-buffer "writer")))
+      (unwind-protect
+          (nelisp-ec-with-current-buffer buf
+            (nelisp-ec-insert "exists")
+            (nelisp-ec-write-region nil nil path)
+            (should-error (nelisp-ec-write-region nil nil path nil nil t)
+                          :type 'file-already-exists))
+        (ignore-errors (delete-file path))))))
+
+(ert-deftest emacs-fileio-builtins-test/write-region-mustbenew-fresh-file-succeeds ()
+  (emacs-fileio-builtins-test--with-fresh-world
+    (let ((path (emacs-fileio-builtins-test--tmp-path "mustbenew-fresh.txt"))
+          (buf (nelisp-ec-generate-new-buffer "writer")))
+      (unwind-protect
+          (nelisp-ec-with-current-buffer buf
+            (nelisp-ec-insert "fresh")
+            (nelisp-ec-write-region nil nil path nil nil t)
+            (should (nelisp-ec-file-exists-p path)))
+        (ignore-errors (delete-file path))))))
+
+(ert-deftest emacs-fileio-builtins-test/write-region-visit-marks-current-buffer-unmodified ()
+  (emacs-fileio-builtins-test--with-fresh-world
+    (let ((path (emacs-fileio-builtins-test--tmp-path "visit.txt"))
+          (buf (nelisp-ec-generate-new-buffer "writer")))
+      (unwind-protect
+          (nelisp-ec-with-current-buffer buf
+            (nelisp-ec-insert "hi")
+            (should (nelisp-ec-buffer-modified-p buf))
+            (nelisp-ec-write-region nil nil path nil t)
+            (should-not (nelisp-ec-buffer-modified-p buf)))
+        (ignore-errors (delete-file path))))))

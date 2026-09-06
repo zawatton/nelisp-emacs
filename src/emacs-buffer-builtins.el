@@ -985,6 +985,192 @@ Ignores narrowing (hashes the whole buffer)."
           (setq i (1+ i)))
         (number-to-string h)))))
 
+;; ---- consumer buffers/markers as print/read streams (T107) ----------
+;;
+;; The standalone NeLisp runtime's own `prin1'/`princ'/`print'/`terpri'/
+;; `write-char'/`read' already accept the RUNTIME's OWN buffer/marker
+;; objects (`nelisp-buffer-p'/`nelisp-marker-p', see
+;; `nelisp--valid-print-stream-p' / `nelisp--emit-to-stream' /
+;; `nelisp--read-dispatch' in vendor/nelisp's prelude) as PRINTCHARFUN /
+;; input streams per the Elisp manual.  This bridge overrides `bufferp',
+;; `markerp', `current-buffer', `make-marker', etc. with this consumer's
+;; OWN `nelisp-ec-buffer' / `nelisp-ec-marker' family (see the alias
+;; table above) -- objects the runtime's guards do not recognize, so
+;; `(prin1 x (current-buffer))' reached `nelisp--valid-print-stream-p',
+;; found neither `functionp' nor `nelisp-buffer-p'/`nelisp-marker-p', and
+;; the buffer record was signalled straight into Elisp's function-call
+;; machinery: `Invalid function: (nelisp-ec-buffer ...)'.
+;;
+;; Fix: wrap the runtime's `nelisp--valid-print-stream-p' (the guard
+;; shared by prin1/princ/print/terpri/write-char), `nelisp--emit-to-
+;; stream' (the emitter those five call into), and `nelisp--read-
+;; dispatch' (drives `read') to recognize `nelisp-ec-buffer-p' /
+;; `nelisp-ec-marker-p' first and fall back to the saved native
+;; implementation for every other stream shape (t, function, the
+;; runtime's own buffer/marker type, nil).  Also wrap the recursive
+;; value printer `nelisp--prn-to-string' so a buffer/marker prints as
+;; Emacs's own `#<buffer NAME>' / `#<marker at POS in NAME>' rather than
+;; its internal alist/record shape -- wrapping the recursive entry point
+;; (not just `prin1-to-string') means a buffer nested inside a list or
+;; vector prints the same way, since `nelisp--prn-list-body' /
+;; `nelisp--prn-vector' recurse by calling `nelisp--prn-to-string' by
+;; name.  `print' needs no separate wrap: it is implemented as
+;; `(terpri stream) (prin1 object stream) (terpri stream)', so it
+;; inherits the fix once `terpri' / `prin1' do.
+;;
+;; Semantics mirror the runtime's own contract for its buffer/marker
+;; streams, checked directly against `emacs -Q --batch' 31.1 (T107
+;; report table):
+;;
+;;   - buffer stream: insert STR at the buffer's point; point advances
+;;     past STR (ordinary `insert' semantics).
+;;   - marker stream: insert STR at the marker's position; the marker
+;;     ALWAYS relocates past STR (insertion-type is irrelevant here --
+;;     on real Emacs it only governs how a marker reacts to OTHER
+;;     insertions, not one made directly at/through it); the buffer's
+;;     point moves along only when it sat at or after the insertion
+;;     position before the insert (Elisp manual, `Output Streams';
+;;     measured with point before / at / after the marker).
+;;   - `read' from a buffer: `read-from-string' on the buffer's whole
+;;     text starting at POINT (a character offset -- both this
+;;     consumer's buffer positions and `read-from-string' work in
+;;     character offsets, not bytes); advance point past the parsed
+;;     form (GNU also skips leading whitespace, which `read-from-string'
+;;     already does); buffer-end / all-whitespace-remaining signals
+;;     `(end-of-file BUFFER)'.
+;;   - `read' from a marker: same, advancing the marker instead of the
+;;     buffer's point; the buffer's point is untouched; end-of-file is
+;;     signalled bare (`(end-of-file)', no data) -- measured against
+;;     GNU Emacs directly (it happens to match the runtime's own marker
+;;     EOF shape).
+;;   - a detached marker (no buffer) signals plain `(error "Marker does
+;;     not point anywhere")', GNU's own wording.
+
+(defvar emacs-buffer-builtins--native-valid-print-stream-p nil
+  "Saved pre-wrap `nelisp--valid-print-stream-p', or nil if never wrapped.")
+(defvar emacs-buffer-builtins--native-emit-to-stream nil
+  "Saved pre-wrap `nelisp--emit-to-stream', or nil if never wrapped.")
+(defvar emacs-buffer-builtins--native-read-dispatch nil
+  "Saved pre-wrap `nelisp--read-dispatch', or nil if never wrapped.")
+(defvar emacs-buffer-builtins--native-prn-to-string nil
+  "Saved pre-wrap `nelisp--prn-to-string', or nil if never wrapped.")
+
+;;;###autoload
+(defun emacs-buffer-builtins-valid-print-stream-p (stream)
+  "Non-nil for a PRINTCHARFUN Emacs accepts: t, function, buffer, marker
+-- this consumer's `nelisp-ec-*' family checked first, then whatever the
+runtime itself already recognizes (its own buffer/marker type)."
+  (or (nelisp-ec-buffer-p stream)
+      (nelisp-ec-marker-p stream)
+      (and emacs-buffer-builtins--native-valid-print-stream-p
+           (funcall emacs-buffer-builtins--native-valid-print-stream-p
+                    stream))))
+
+(defun emacs-buffer-builtins--emit-to-ec-marker (str marker)
+  "Emit STR at MARKER (a `nelisp-ec-marker'): insert at its position,
+relocate MARKER past STR, and advance the marker's buffer's point along
+with it only when that point sat at or after the insertion position."
+  (let ((mbuf (nelisp-ec-marker-buffer marker)))
+    (unless mbuf
+      (signal 'error (list "Marker does not point anywhere")))
+    (let ((nelisp-ec--current-buffer mbuf))
+      (let* ((orig-point (nelisp-ec-point))
+             (ins-pos (nelisp-ec-marker-position marker))
+             (n (length str)))
+        (nelisp-ec-goto-char ins-pos)
+        (nelisp-ec-insert str)
+        (nelisp-ec-goto-char (if (>= orig-point ins-pos)
+                                  (+ orig-point n)
+                                orig-point))
+        (nelisp-ec-set-marker marker (+ ins-pos n) mbuf)))))
+
+;;;###autoload
+(defun emacs-buffer-builtins-emit-to-stream (str stream)
+  "Send STR to STREAM; this consumer's buffer/marker arm, else delegate
+to the saved native `nelisp--emit-to-stream'."
+  (cond
+   ((nelisp-ec-buffer-p stream)
+    (let ((nelisp-ec--current-buffer stream))
+      (nelisp-ec-insert str)))
+   ((nelisp-ec-marker-p stream)
+    (emacs-buffer-builtins--emit-to-ec-marker str stream))
+   (emacs-buffer-builtins--native-emit-to-stream
+    (funcall emacs-buffer-builtins--native-emit-to-stream str stream))
+   (t (princ str))))
+
+;;;###autoload
+(defun emacs-buffer-builtins-read-dispatch (stream)
+  "Resolve STREAM for `read'; this consumer's buffer/marker arm, else
+delegate to the saved native `nelisp--read-dispatch'."
+  (cond
+   ((nelisp-ec-buffer-p stream)
+    (let ((nelisp-ec--current-buffer stream))
+      (let* ((full (nelisp-ec-buffer-string))
+             (start (1- (nelisp-ec-point)))
+             (r (condition-case nil
+                    (read-from-string full start)
+                  (end-of-file (signal 'end-of-file (list stream))))))
+        (nelisp-ec-goto-char (1+ (cdr r)))
+        (car r))))
+   ((nelisp-ec-marker-p stream)
+    (let ((mbuf (nelisp-ec-marker-buffer stream)))
+      (unless mbuf
+        (signal 'error (list "Marker does not point anywhere")))
+      (let ((nelisp-ec--current-buffer mbuf))
+        (let* ((full (nelisp-ec-buffer-string))
+               (start (1- (nelisp-ec-marker-position stream)))
+               (r (read-from-string full start)))
+          (nelisp-ec-set-marker stream (1+ (cdr r)) mbuf)
+          (car r)))))
+   (emacs-buffer-builtins--native-read-dispatch
+    (funcall emacs-buffer-builtins--native-read-dispatch stream))
+   (t (signal (if (symbolp stream) 'void-function 'invalid-function)
+              (list stream)))))
+
+;;;###autoload
+(defun emacs-buffer-builtins-prn-to-string (obj escape &optional depth)
+  "Print OBJ; recognize this consumer's `nelisp-ec-buffer' /
+`nelisp-ec-marker' as Emacs's own `#<buffer NAME>' / `#<killed buffer>'
+/ `#<marker at POS in NAME>' / `#<marker in no buffer>', else delegate
+to the saved native recursive printer `nelisp--prn-to-string'."
+  (cond
+   ((nelisp-ec-buffer-p obj)
+    (if (nelisp-ec-buffer-killed-p obj)
+        "#<killed buffer>"
+      (format "#<buffer %s>" (nelisp-ec-buffer-name obj))))
+   ((nelisp-ec-marker-p obj)
+    (let ((buf (nelisp-ec-marker-buffer obj)))
+      (if buf
+          (format "#<marker at %d in %s>"
+                  (nelisp-ec-marker-position obj) (nelisp-ec-buffer-name buf))
+        "#<marker in no buffer>")))
+   (emacs-buffer-builtins--native-prn-to-string
+    (funcall emacs-buffer-builtins--native-prn-to-string obj escape depth))
+   (t (format "#<unprintable %S>" obj))))
+
+(when (emacs-buffer-builtins--standalone-p)
+  (when (and (fboundp 'nelisp--valid-print-stream-p)
+             (not emacs-buffer-builtins--native-valid-print-stream-p))
+    (setq emacs-buffer-builtins--native-valid-print-stream-p
+          (symbol-function 'nelisp--valid-print-stream-p))
+    (fset 'nelisp--valid-print-stream-p
+          #'emacs-buffer-builtins-valid-print-stream-p))
+  (when (and (fboundp 'nelisp--emit-to-stream)
+             (not emacs-buffer-builtins--native-emit-to-stream))
+    (setq emacs-buffer-builtins--native-emit-to-stream
+          (symbol-function 'nelisp--emit-to-stream))
+    (fset 'nelisp--emit-to-stream #'emacs-buffer-builtins-emit-to-stream))
+  (when (and (fboundp 'nelisp--read-dispatch)
+             (not emacs-buffer-builtins--native-read-dispatch))
+    (setq emacs-buffer-builtins--native-read-dispatch
+          (symbol-function 'nelisp--read-dispatch))
+    (fset 'nelisp--read-dispatch #'emacs-buffer-builtins-read-dispatch))
+  (when (and (fboundp 'nelisp--prn-to-string)
+             (not emacs-buffer-builtins--native-prn-to-string))
+    (setq emacs-buffer-builtins--native-prn-to-string
+          (symbol-function 'nelisp--prn-to-string))
+    (fset 'nelisp--prn-to-string #'emacs-buffer-builtins-prn-to-string)))
+
 (provide 'emacs-buffer-builtins)
 
 ;;; emacs-buffer-builtins.el ends here

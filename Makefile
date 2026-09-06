@@ -771,6 +771,7 @@ TEST_FAST_FILES = \
 	test/emacs-fileio-builtins-test.el \
 	test/emacs-file-name-handler-test.el \
 	test/files-test.el \
+	test/files-standalone-buffer-test.el \
 	test/emacs-fileio-test.el \
 	test/emacs-keymap-builtins-test.el \
 	test/emacs-keymap-test.el \

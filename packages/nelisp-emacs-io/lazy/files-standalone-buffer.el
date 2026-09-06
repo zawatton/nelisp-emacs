@@ -399,12 +399,21 @@ done (relative, `~', or containing `.'/`..'/`//')."
      ((> pos max) max)
      (t pos))))
 
+(defun files--position-value (pos)
+  "Resolve POS to a plain integer, following a marker if needed (T107)."
+  (if (and (fboundp 'markerp) (markerp pos))
+      (marker-position pos)
+    pos))
+
 (defun files--buffer-substring (start end)
-  "Return fallback buffer text from START to END using Emacs positions."
-  (let* ((from (1- (files--clip-point start)))
-         (to (1- (files--clip-point end)))
+  "Return fallback buffer text from START to END using Emacs positions.
+START/END may be integers or markers (T107) and need not already be in
+order -- like real `write-region', the smaller of the two is always the
+start of the returned text."
+  (let* ((from (1- (files--clip-point (files--position-value start))))
+         (to (1- (files--clip-point (files--position-value end))))
          (text (files--buffer-string-value)))
-    (substring text from to)))
+    (substring text (min from to) (max from to))))
 
 (defun files--install-fallback-function-p (symbol)
   "Return non-nil when fallback SYMBOL should be installed."
@@ -512,17 +521,28 @@ done (relative, `~', or containing `.'/`..'/`//')."
                              (or end (point-max)))))
 
 (defun files--write-file-text (filename text append visit lockname mustbenew)
-  "Write TEXT to FILENAME through the best available backend."
-  (cond
-   ((fboundp 'nl-syscall-write-file)
-    (nl-syscall-write-file filename text (if append 1 0)))
-   ((and (fboundp 'nl-write-file) (not append))
-    (nl-write-file filename text))
-   (files--native-write-region
-    (funcall files--native-write-region text nil filename append visit
-             lockname mustbenew))
-   (t
-    (signal 'file-error (list "Cannot write file" filename)))))
+  "Write TEXT to FILENAME through the best available backend.
+MUSTBENEW non-nil signals `file-already-exists' when FILENAME already
+exists, `excl' or not (T107): this headless runtime cannot pose Emacs's
+own overwrite-confirmation prompt.  VISIT non-nil marks the fallback
+current buffer not-modified afterwards (Emacs also associates FILENAME
+as the visited file name when VISIT is a string or t; this fallback
+only clears the modified flag)."
+  (when (and mustbenew (fboundp 'file-exists-p) (file-exists-p filename))
+    (signal 'file-already-exists (list "File exists" filename)))
+  (prog1
+      (cond
+       ((fboundp 'nl-syscall-write-file)
+        (nl-syscall-write-file filename text (if append 1 0)))
+       ((and (fboundp 'nl-write-file) (not append))
+        (nl-write-file filename text))
+       (files--native-write-region
+        (funcall files--native-write-region text nil filename append visit
+                 lockname mustbenew))
+       (t
+        (signal 'file-error (list "Cannot write file" filename))))
+    (when visit
+      (files--set-buffer-modified-value nil))))
 
 (when (files--install-fallback-function-p 'write-region)
   (defun write-region

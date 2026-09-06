@@ -621,17 +621,22 @@ INTERACTIVE-CALL is accepted for Emacs API parity and ignored."
   (defalias 'add-to-load-path #'emacs-fileio-builtins-add-to-load-path))
 
 (defun emacs-fileio-builtins--local-write-region
-    (start end filename &optional append visit _lockname _mustbenew)
+    (start end filename &optional append visit lockname mustbenew)
   "Local `write-region' body: forward to `nelisp-ec-write-region'.
-LOCKNAME / MUSTBENEW are accepted for API parity but ignored -- the
-substrate has no file-locking subsystem yet."
+LOCKNAME is accepted for API parity but ignored -- the substrate has no
+file-locking subsystem yet.  MUSTBENEW is forwarded to
+`nelisp-ec-write-region' (and to the fast `nl-write-file'/`nl-append-file'
+primitives, checked up front since neither of those implements it)."
   (cond
    ((and (stringp start) (null end))
     (cond
      ((and (not (emacs-fileio-builtins--standalone-p))
            emacs-fileio-builtins--host-write-region)
       (funcall emacs-fileio-builtins--host-write-region
-               start nil filename append visit))
+               start nil filename append visit lockname mustbenew))
+     ((and mustbenew (fboundp 'nelisp-ec-file-exists-p)
+           (nelisp-ec-file-exists-p filename))
+      (signal 'file-already-exists (list "File exists" filename)))
      ((and append (fboundp 'nl-append-file))
       (nl-append-file filename start)
       (length start))
@@ -643,21 +648,21 @@ substrate has no file-locking subsystem yet."
       ;; string START itself (and reaches the captured host writer through
       ;; `nelisp-ec--write-raw-bytes'), so the former dead-end signal is
       ;; replaced by the same path every other case takes.
-      (nelisp-ec-write-region start nil filename append visit))))
-   ;; Buffer-sourced writes (nil or integer START) must read from the
-   ;; buffer substrate that owns the current buffer.  When no nelisp-ec
-   ;; buffer is selected, the current buffer is a real host buffer
-   ;; (e.g. host `with-temp-file' expanding to `write-region nil nil');
-   ;; the captured pre-wrap host writer implements the nil/integer
-   ;; START contract natively, VISIT and coding included.  On the
-   ;; standalone reader the capture is nil, so this arm never fires
-   ;; there.
+      (nelisp-ec-write-region start nil filename append visit mustbenew))))
+   ;; Buffer-sourced writes (nil or integer/marker START) must read from
+   ;; the buffer substrate that owns the current buffer.  When no
+   ;; nelisp-ec buffer is selected, the current buffer is a real host
+   ;; buffer (e.g. host `with-temp-file' expanding to `write-region nil
+   ;; nil'); the captured pre-wrap host writer implements the nil/
+   ;; integer/marker START contract natively, VISIT and coding included.
+   ;; On the standalone reader the capture is nil, so this arm never
+   ;; fires there.
    ((and (not (bound-and-true-p nelisp-ec--current-buffer))
          emacs-fileio-builtins--host-write-region)
     (funcall emacs-fileio-builtins--host-write-region
-             start end filename append visit))
+             start end filename append visit lockname mustbenew))
    (t
-    (nelisp-ec-write-region start end filename append visit))))
+    (nelisp-ec-write-region start end filename append visit mustbenew))))
 
 (defun emacs-fileio-builtins-write-region
     (start end filename &optional append visit lockname mustbenew)

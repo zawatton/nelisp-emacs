@@ -1,0 +1,1 @@
+/home/madblack-21/Cowork/Notes/dev/nelisp-emacs-lib/vendor/dash.el
